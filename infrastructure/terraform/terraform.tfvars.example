@@ -1,0 +1,21 @@
+aws_region     = "us-east-1"
+aws_access_key = "YOUR_AWS_ACCESS_KEY"
+aws_secret_key = "YOUR_AWS_SECRET_KEY"
+aws_account_id = "123456789012"
+environment    = "prod"
+
+# RDS Configuration
+vpc_id                      = "vpc-xxxxxxxxxxxxxxxxx"
+db_subnet_ids               = ["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]
+allowed_cidr_blocks         = ["10.0.0.0/16"]
+postgres_version            = "17"
+db_instance_class           = "db.t3.micro"
+db_allocated_storage        = 20
+db_max_allocated_storage    = 100
+db_name                     = "scalable_test"
+db_username                 = "postgres"
+db_password                 = "YOUR_SECURE_PASSWORD"
+db_publicly_accessible      = false
+db_backup_retention_period  = 7
+skip_final_snapshot         = false
+deletion_protection         = true
