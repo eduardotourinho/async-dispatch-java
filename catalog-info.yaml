@@ -1,0 +1,49 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: scalable-test
+  description: Distributed task processing system using Spring Boot, AWS SQS FIFO queues, and PostgreSQL.
+  annotations:
+    github.com/project-slug: eduardotourinho/scalable_test
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: https://github.com/eduardotourinho/scalable_test
+      title: GitHub
+      icon: github
+  tags:
+    - java
+    - spring-boot
+    - aws-sqs
+    - postgresql
+spec:
+  type: service
+  owner: user:default/eduardo-tourinho
+  lifecycle: experimental
+  providesApis:
+    - scalable-test-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: scalable-test-api
+  description: Task processing API for submitting and retrieving distributed tasks (currency conversion, interest calculation).
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: experimental
+  owner: user:default/eduardo-tourinho
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Scalable Test Task API
+      version: "1.0"
+    paths:
+      /api/tasks:
+        post:
+          summary: Submit a new task
+          operationId: enqueueTask
+      /api/tasks/{taskId}:
+        get:
+          summary: Get task status and result
+          operationId: getTask
