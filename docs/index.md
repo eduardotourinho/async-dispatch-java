@@ -38,6 +38,64 @@ sequenceDiagram
     REST API-->>Client: 200 { status, result }
 ```
 
+### Component Overview
+
+```mermaid
+graph TB
+    Client(["HTTP Client"])
+
+    subgraph TM ["Task Manager"]
+        TC["TaskController"]
+        TMgr["TaskManager"]
+        TS["TaskService"]
+        TP["TaskProducer"]
+        TRL["TaskResultsSqsListener"]
+        TDL["TasksDlqListener"]
+        TRDL["TaskResultsDlqListener"]
+    end
+
+    subgraph TC2 ["Task Converter"]
+        TWL["TaskWorkerSqsListener"]
+        CCS["ConvertCurrencyService"]
+        CIS["CalculateInterestService"]
+        TRP["TaskResultProducer"]
+    end
+
+    subgraph SQS ["AWS SQS"]
+        TQ[/"tasks.fifo"/]
+        TRQ[/"task-results.fifo"/]
+        TDLQ[/"tasks-dlq.fifo"/]
+        TRDLQ[/"task-results-dlq.fifo"/]
+    end
+
+    DB[("PostgreSQL")]
+
+    Client -->|"REST"| TC
+    TC --> TMgr
+    TMgr --> TS
+    TMgr --> TP
+    TS <--> DB
+
+    TP -->|publish| TQ
+    TQ -.->|"max retries exceeded"| TDLQ
+
+    TQ -->|consume| TWL
+    TWL --> CCS
+    TWL --> CIS
+    CCS --> TRP
+    CIS --> TRP
+    TRP -->|publish| TRQ
+    TRQ -.->|"max retries exceeded"| TRDLQ
+
+    TRQ -->|consume| TRL
+    TRL --> TS
+
+    TDLQ -->|consume| TDL
+    TDL --> TS
+
+    TRDLQ -->|consume| TRDL
+```
+
 ## Tech stack
 
 | Component | Technology |
