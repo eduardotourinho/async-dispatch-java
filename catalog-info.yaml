@@ -1,13 +1,13 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: scalable-test
+  name: async-dispatch
   description: Distributed task processing system using Spring Boot, AWS SQS FIFO queues, and PostgreSQL.
   annotations:
-    github.com/project-slug: eduardotourinho/scalable_test
+    github.com/project-slug: eduardotourinho/async-dispatch
     backstage.io/techdocs-ref: dir:.
   links:
-    - url: https://github.com/eduardotourinho/scalable_test
+    - url: https://github.com/eduardotourinho/async-dispatch
       title: GitHub
       icon: github
   tags:
@@ -20,12 +20,12 @@ spec:
   owner: user:default/eduardo-tourinho
   lifecycle: experimental
   providesApis:
-    - scalable-test-api
+    - async-dispatch-api
 ---
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: scalable-test-api
+  name: async-dispatch-api
   description: Task processing API for submitting and retrieving distributed tasks (currency conversion, interest calculation).
   tags:
     - rest
@@ -36,7 +36,7 @@ spec:
   definition: |
     openapi: "3.0.0"
     info:
-      title: Scalable Test Task API
+      title: Async Dispatch Task API
       version: "1.0"
     paths:
       /api/tasks:

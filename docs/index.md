@@ -1,4 +1,4 @@
-# Scalable Test – Distributed Task Processing
+# Async Dispatch – Distributed Task Processing
 
 A Spring Boot application demonstrating scalable asynchronous task processing using AWS SQS FIFO queues and PostgreSQL, with LocalStack for local development.
 

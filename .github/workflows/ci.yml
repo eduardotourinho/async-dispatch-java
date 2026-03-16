@@ -25,7 +25,7 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_DB: scalable_test
+          POSTGRES_DB: async_dispatch
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: >-
@@ -52,7 +52,7 @@ jobs:
           --health-retries 10
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/scalable_test
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/async_dispatch
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
 

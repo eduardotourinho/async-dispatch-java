@@ -23,7 +23,7 @@ resource "aws_sqs_queue" "tasks_dlq" {
 
   tags = {
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }
@@ -45,7 +45,7 @@ resource "aws_sqs_queue" "tasks" {
 
   tags = {
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }
@@ -58,7 +58,7 @@ resource "aws_sqs_queue" "task_results_dlq" {
 
   tags = {
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }
@@ -80,7 +80,7 @@ resource "aws_sqs_queue" "task_results" {
 
   tags = {
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }

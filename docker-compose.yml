@@ -1,11 +1,11 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: scalable-test-postgres
+    container_name: async-dispatch-postgres
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=scalable_test
+      - POSTGRES_DB=async_dispatch
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
 
@@ -25,7 +25,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
 
   service:
-    container_name: scalable-service
+    container_name: async-dispatch-service
     build:
       context: .
     ports:

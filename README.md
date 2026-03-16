@@ -1,4 +1,4 @@
-# Scalable Test - Distributed Task Processing System
+# Async Dispatch - Distributed Task Processing System
 
 A Spring Boot application demonstrating scalable task processing using AWS SQS FIFO queues and PostgreSQL, with LocalStack for local development.
 
@@ -36,8 +36,8 @@ The system consists of two main components:
 ## Project Structure
 
 ```
-scalable_test/
-├── src/main/java/dev/eduardo/scalable_test/
+async-dispatch/
+├── src/main/java/dev/eduardo/async_dispatch/
 │   ├── common/                    # Shared domain and messages
 │   │   ├── domain/
 │   │   │   └── TaskType.java
@@ -67,7 +67,7 @@ scalable_test/
 ### 1.1 Clone and Build
 
 ```bash
-cd /Users/eduardo/dev/scalable_test
+cd async-dispatch
 ./gradlew clean build
 ```
 
@@ -225,7 +225,7 @@ Calculates simple interest for a given principal, rate, and time period.
 
 ```properties
 # Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/scalable_test
+spring.datasource.url=jdbc:postgresql://localhost:5432/async_dispatch
 spring.datasource.username=postgres
 spring.datasource.password=postgres
 
@@ -291,7 +291,7 @@ See [README-LOCALSTACK.md](README-LOCALSTACK.md) for detailed SQS monitoring com
 
 ```bash
 # Connect to PostgreSQL
-docker exec -it scalable-test-postgres psql -U postgres -d scalable_test
+docker exec -it async-dispatch-postgres psql -U postgres -d async_dispatch
 
 # View tasks
 SELECT id, type, status, created_at FROM tasks ORDER BY created_at DESC LIMIT 10;

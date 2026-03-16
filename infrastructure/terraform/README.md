@@ -26,7 +26,7 @@ This Terraform configuration provisions AWS resources for production deployment 
 
 ### RDS PostgreSQL Database
 
-- **Instance**: `{environment}-scalable-test-db`
+- **Instance**: `{environment}-async-dispatch-db`
   - Engine: PostgreSQL 17
   - Instance class: db.t3.micro (configurable)
   - Storage: 20GB with autoscaling up to 100GB
@@ -134,7 +134,7 @@ Create a Spring Boot `application.properties` for production:
 
 ```properties
 # Database Configuration
-spring.datasource.url=jdbc:postgresql://${RDS_ENDPOINT}/scalable_test
+spring.datasource.url=jdbc:postgresql://${RDS_ENDPOINT}/async_dispatch
 spring.datasource.username=${DB_USERNAME}
 spring.datasource.password=${DB_PASSWORD}
 
@@ -150,7 +150,7 @@ Or use IAM roles (recommended for EC2/ECS):
 
 ```properties
 # Database Configuration
-spring.datasource.url=jdbc:postgresql://${RDS_ENDPOINT}/scalable_test
+spring.datasource.url=jdbc:postgresql://${RDS_ENDPOINT}/async_dispatch
 spring.datasource.username=${DB_USERNAME}
 spring.datasource.password=${DB_PASSWORD}
 

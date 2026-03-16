@@ -1,4 +1,4 @@
-site_name: Scalable Test
+site_name: Async Dispatch
 site_description: >-
   Distributed task processing system using Spring Boot, AWS SQS FIFO queues, and
   PostgreSQL.

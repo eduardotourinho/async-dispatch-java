@@ -6,7 +6,7 @@ plugins {
 
 group = 'dev.eduardo'
 version = '0.0.1-SNAPSHOT'
-description = 'scalable_test'
+description = 'async-dispatch'
 
 java {
     toolchain {
