@@ -69,7 +69,7 @@ metadata:
 spec:
   type: service
   owner: user:default/eduardo-tourinho
-  lifecycle: production
+  lifecycle: experimental
   system: async-dispatch
   providesApis:
     - async-dispatch-api
@@ -87,7 +87,7 @@ metadata:
     - rest
 spec:
   type: openapi
-  lifecycle: production
+  lifecycle: experimental
   owner: user:default/eduardo-tourinho
   system: async-dispatch
   definition: |
