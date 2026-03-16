@@ -1,0 +1,147 @@
+<svg width="1160" height="860" viewBox="0 0 1160 860" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <style>
+    text { font-family: system-ui, -apple-system, sans-serif; }
+    .th  { font-size: 12px; font-weight: 500; fill: #1a1a18; }
+    .ts  { font-size: 11px; font-weight: 400; fill: #44433f; }
+    .tm  { font-size: 11px; font-weight: 400; fill: #1a1a18; }
+    .tn  { font-size: 10.5px; font-weight: 400; fill: #44433f; font-style: italic; }
+    .hdr-blue   { fill: #E6F1FB; stroke: #185FA5; }
+    .hdr-teal   { fill: #E1F5EE; stroke: #0F6E56; }
+    .hdr-coral  { fill: #FAECE7; stroke: #993C1D; }
+    .hdr-amber  { fill: #FAEEDA; stroke: #854F0B; }
+    .hdr-purple { fill: #EEEDFE; stroke: #534AB7; }
+    .tb  { fill: #0C447C; }
+    .tt  { fill: #085041; }
+    .tc  { fill: #712B13; }
+    .ta  { fill: #633806; }
+    .tp  { fill: #3C3489; }
+    .sync  { fill: none; stroke: #3d3d3a; stroke-width: 1.4; }
+    .async { fill: none; stroke: #3d3d3a; stroke-width: 1.4; stroke-dasharray: 6 3; }
+    .life  { fill: none; stroke: #b4b2a9; stroke-width: 1; stroke-dasharray: 4 4; }
+    .note  { fill: #FAEEDA; stroke: #854F0B; stroke-width: 0.5; }
+    .dlq   { fill: #F1EFE8; stroke: #5F5E5A; stroke-width: 0.5; }
+  </style>
+</defs>
+
+<rect width="1160" height="860" fill="#f8f7f4" rx="12"/>
+
+<!-- Participant headers -->
+<rect class="hdr-blue" x="20" y="20" width="100" height="48" rx="8" stroke-width="0.5"/>
+<text class="th tb" x="70" y="44" text-anchor="middle" dominant-baseline="central">Client</text>
+
+<rect class="hdr-teal" x="160" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
+<text class="th tt" x="220" y="44" text-anchor="middle" dominant-baseline="central">REST API</text>
+
+<rect class="hdr-coral" x="310" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
+<text class="th tc" x="370" y="44" text-anchor="middle" dominant-baseline="central">PostgreSQL</text>
+
+<rect class="hdr-amber" x="450" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
+<text class="th ta" x="510" y="44" text-anchor="middle" dominant-baseline="central">tasks.fifo</text>
+
+<rect class="hdr-purple" x="580" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
+<text class="th tp" x="640" y="44" text-anchor="middle" dominant-baseline="central">Task Worker</text>
+
+<rect class="hdr-amber" x="718" y="20" width="124" height="48" rx="8" stroke-width="0.5"/>
+<text class="th ta" x="780" y="37" text-anchor="middle" dominant-baseline="central">task-results</text>
+<text class="th ta" x="780" y="55" text-anchor="middle" dominant-baseline="central">.fifo</text>
+
+<rect class="hdr-purple" x="858" y="20" width="124" height="48" rx="8" stroke-width="0.5"/>
+<text class="th tp" x="920" y="44" text-anchor="middle" dominant-baseline="central">Result Listener</text>
+
+<!-- Lifelines -->
+<line class="life" x1="70"  y1="68" x2="70"  y2="830"/>
+<line class="life" x1="220" y1="68" x2="220" y2="830"/>
+<line class="life" x1="370" y1="68" x2="370" y2="830"/>
+<line class="life" x1="510" y1="68" x2="510" y2="830"/>
+<line class="life" x1="640" y1="68" x2="640" y2="830"/>
+<line class="life" x1="780" y1="68" x2="780" y2="830"/>
+<line class="life" x1="920" y1="68" x2="920" y2="830"/>
+
+<!-- Alternating row bands -->
+<rect x="0" y="108" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+<rect x="0" y="208" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+<rect x="0" y="318" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+<rect x="0" y="438" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+<rect x="0" y="538" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+<rect x="0" y="638" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+<rect x="0" y="738" width="1160" height="42" fill="rgba(0,0,0,0.025)"/>
+
+<!-- Section bars -->
+<rect x="0" y="96"  width="6" height="200" fill="#0F6E56" rx="2"/>
+<text font-size="10px" font-weight="500" fill="#0F6E56" x="14" y="196" dominant-baseline="central" transform="rotate(-90,14,196)" font-family="system-ui,sans-serif">Submit task</text>
+
+<rect x="0" y="308" width="6" height="220" fill="#534AB7" rx="2"/>
+<text font-size="10px" font-weight="500" fill="#534AB7" x="14" y="418" dominant-baseline="central" transform="rotate(-90,14,418)" font-family="system-ui,sans-serif">Async processing</text>
+
+<rect x="0" y="538" width="6" height="150" fill="#993C1D" rx="2"/>
+<text font-size="10px" font-weight="500" fill="#993C1D" x="14" y="613" dominant-baseline="central" transform="rotate(-90,14,613)" font-family="system-ui,sans-serif">Result</text>
+
+<rect x="0" y="700" width="6" height="140" fill="#0C447C" rx="2"/>
+<text font-size="10px" font-weight="500" fill="#0C447C" x="14" y="770" dominant-baseline="central" transform="rotate(-90,14,770)" font-family="system-ui,sans-serif">Poll result</text>
+
+<!-- R1 — POST /api/tasks -->
+<line class="sync" x1="70" y1="129" x2="218" y2="129" marker-end="url(#arr)"/>
+<text class="tm" x="144" y="121" text-anchor="middle" dominant-baseline="central">POST /api/tasks</text>
+
+<!-- R2 — Save task (PENDING) -->
+<line class="sync" x1="220" y1="179" x2="368" y2="179" marker-end="url(#arr)"/>
+<text class="tm" x="295" y="171" text-anchor="middle" dominant-baseline="central">Save task (PENDING)</text>
+
+<!-- R3 — Publish task message -->
+<line class="sync" x1="220" y1="229" x2="508" y2="229" marker-end="url(#arr)"/>
+<text class="tm" x="364" y="221" text-anchor="middle" dominant-baseline="central">Publish task message</text>
+
+<!-- R4 — 202 { taskId } -->
+<line class="async" x1="218" y1="279" x2="72" y2="279" marker-end="url(#arr)"/>
+<text class="tm" x="144" y="271" text-anchor="middle" dominant-baseline="central">202 { taskId }</text>
+
+<!-- R5 — Consume message -->
+<line class="sync" x1="510" y1="339" x2="638" y2="339" marker-end="url(#arr)"/>
+<text class="tm" x="574" y="331" text-anchor="middle" dominant-baseline="central">Consume message</text>
+
+<!-- Note over Task Worker -->
+<rect class="note" x="556" y="356" width="168" height="38" rx="6"/>
+<text class="tn" x="640" y="370" text-anchor="middle" dominant-baseline="central">ConvertCurrencyService</text>
+<text class="tn" x="640" y="385" text-anchor="middle" dominant-baseline="central">or CalculateInterestService</text>
+
+<!-- R7 — Publish result message -->
+<line class="sync" x1="640" y1="459" x2="778" y2="459" marker-end="url(#arr)"/>
+<text class="tm" x="710" y="451" text-anchor="middle" dominant-baseline="central">Publish result message</text>
+
+<!-- R8 — tasks DLQ -->
+<rect class="dlq" x="426" y="488" width="128" height="28" rx="5"/>
+<text class="tn" x="490" y="502" text-anchor="middle" dominant-baseline="central">tasks-dlq.fifo</text>
+<line class="async" x1="510" y1="502" x2="556" y2="502" marker-end="url(#arr)"/>
+<text class="tn" x="440" y="482" text-anchor="middle" dominant-baseline="central">Failed messages (DLQ)</text>
+
+<!-- R9 — Consume result -->
+<line class="sync" x1="780" y1="559" x2="918" y2="559" marker-end="url(#arr)"/>
+<text class="tm" x="850" y="551" text-anchor="middle" dominant-baseline="central">Consume result</text>
+
+<!-- R10 — Update task status -->
+<line class="sync" x1="920" y1="609" x2="372" y2="609" marker-end="url(#arr)"/>
+<text class="tm" x="646" y="601" text-anchor="middle" dominant-baseline="central">Update task status (COMPLETED)</text>
+
+<!-- R11 — task-results DLQ -->
+<rect class="dlq" x="696" y="638" width="148" height="28" rx="5"/>
+<text class="tn" x="770" y="652" text-anchor="middle" dominant-baseline="central">task-results-dlq.fifo</text>
+<line class="async" x1="780" y1="652" x2="846" y2="652" marker-end="url(#arr)"/>
+<text class="tn" x="700" y="632" text-anchor="middle" dominant-baseline="central">Failed messages (DLQ)</text>
+
+<!-- R12 — GET /api/tasks/{taskId} -->
+<line class="sync" x1="70" y1="759" x2="218" y2="759" marker-end="url(#arr)"/>
+<text class="tm" x="144" y="751" text-anchor="middle" dominant-baseline="central">GET /api/tasks/{taskId}</text>
+
+<!-- R13 — Fetch task -->
+<line class="sync" x1="220" y1="799" x2="368" y2="799" marker-end="url(#arr)"/>
+<text class="tm" x="295" y="791" text-anchor="middle" dominant-baseline="central">Fetch task</text>
+
+<!-- R14 — 200 { status, result } -->
+<line class="async" x1="218" y1="829" x2="72" y2="829" marker-end="url(#arr)"/>
+<text class="tm" x="144" y="821" text-anchor="middle" dominant-baseline="central">200 { status, result }</text>
+
+</svg>
