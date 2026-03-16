@@ -71,7 +71,7 @@ variable "db_max_allocated_storage" {
 variable "db_name" {
   description = "Database name"
   type        = string
-  default     = "scalable_test"
+  default     = "async_dispatch"
 }
 
 variable "db_username" {

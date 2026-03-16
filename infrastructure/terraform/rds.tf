@@ -1,17 +1,17 @@
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.environment}-scalable-test-db-subnet-group"
+  name       = "${var.environment}-async-dispatch-db-subnet-group"
   subnet_ids = var.db_subnet_ids
 
   tags = {
-    Name        = "${var.environment}-scalable-test-db-subnet-group"
+    Name        = "${var.environment}-async-dispatch-db-subnet-group"
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }
 
 resource "aws_security_group" "rds" {
-  name        = "${var.environment}-scalable-test-rds-sg"
+  name        = "${var.environment}-async-dispatch-rds-sg"
   description = "Security group for RDS PostgreSQL instance"
   vpc_id      = var.vpc_id
 
@@ -32,15 +32,15 @@ resource "aws_security_group" "rds" {
   }
 
   tags = {
-    Name        = "${var.environment}-scalable-test-rds-sg"
+    Name        = "${var.environment}-async-dispatch-rds-sg"
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }
 
 resource "aws_db_instance" "postgres" {
-  identifier     = "${var.environment}-scalable-test-db"
+  identifier     = "${var.environment}-async-dispatch-db"
   engine         = "postgres"
   engine_version = var.postgres_version
   instance_class = var.db_instance_class
@@ -66,7 +66,7 @@ resource "aws_db_instance" "postgres" {
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
   skip_final_snapshot       = var.skip_final_snapshot
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.environment}-scalable-test-db-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.environment}-async-dispatch-db-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
 
   deletion_protection = var.deletion_protection
 
@@ -74,9 +74,9 @@ resource "aws_db_instance" "postgres" {
   performance_insights_retention_period = 7
 
   tags = {
-    Name        = "${var.environment}-scalable-test-db"
+    Name        = "${var.environment}-async-dispatch-db"
     Environment = var.environment
-    Application = "scalable-test"
+    Application = "async-dispatch"
     ManagedBy   = "terraform"
   }
 }

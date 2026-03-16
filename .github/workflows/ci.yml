@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+      - master
+      - "feature/**"
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: async_dispatch
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      localstack:
+        image: localstack/localstack:3
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: sqs
+          DEFAULT_REGION: us-east-1
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          DEBUG: "0"
+        options: >-
+          --health-cmd "curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/async_dispatch
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
+      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
+      SPRING_CLOUD_AWS_ENDPOINT: http://localhost:4566
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localhost:4566
+      SPRING_CLOUD_AWS_SQS_TASKS_QUEUE_URL: http://localhost:4566/000000000000/tasks.fifo
+      SPRING_CLOUD_AWS_SQS_TASK_RESULTS_QUEUE_URL: http://localhost:4566/000000000000/task-results.fifo
+      SPRING_CLOUD_AWS_SQS_TASKS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/tasks-dlq.fifo
+      SPRING_CLOUD_AWS_SQS_TASK_RESULTS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/task-results-dlq.fifo
+
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x ./gradlew
+
+      - name: Build and run tests
+        run: ./gradlew build --no-daemon
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: build/reports/tests/
+          retention-days: 7

@@ -1,4 +1,4 @@
-# Scalable Test - Distributed Task Processing System
+# Async Dispatch - Distributed Task Processing System
 
 A Spring Boot application demonstrating scalable task processing using AWS SQS FIFO queues and PostgreSQL, with LocalStack for local development.
 
@@ -9,12 +9,92 @@ The system consists of two main components:
 - **Task Manager**: REST API for task submission and status retrieval
 - **Task Converter**: Worker service that processes tasks from SQS queues
 
-**Flow:**
-1. Client submits task via REST API
-2. Task is saved to PostgreSQL with PENDING status
-3. Task message is sent to `tasks.fifo` SQS queue
-4. Worker processes the task and sends result to `task-results.fifo` queue
-5. Result listener updates task status to COMPLETED
+```mermaid
+sequenceDiagram
+    participant Client
+    participant REST API
+    participant PostgreSQL
+    participant tasks.fifo
+    participant Task Worker
+    participant task-results.fifo
+    participant Result Listener
+
+    Client->>REST API: POST /api/tasks
+    REST API->>PostgreSQL: Save task (PENDING)
+    REST API->>tasks.fifo: Publish task message
+    REST API-->>Client: 202 { taskId }
+
+    tasks.fifo->>Task Worker: Consume message
+    Note over Task Worker: ConvertCurrencyService<br/>or CalculateInterestService
+    Task Worker->>task-results.fifo: Publish result message
+    tasks.fifo-->>tasks-dlq.fifo: Failed messages (DLQ)
+
+    task-results.fifo->>Result Listener: Consume result
+    Result Listener->>PostgreSQL: Update task status (COMPLETED)
+    task-results.fifo-->>task-results-dlq.fifo: Failed messages (DLQ)
+
+    Client->>REST API: GET /api/tasks/{taskId}
+    REST API->>PostgreSQL: Fetch task
+    REST API-->>Client: 200 { status, result }
+```
+
+### Component Overview
+
+```mermaid
+graph TB
+    Client(["HTTP Client"])
+
+    subgraph TM ["Task Manager"]
+        TC["TaskController"]
+        TMgr["TaskManager"]
+        TS["TaskService"]
+        TP["TaskProducer"]
+        TRL["TaskResultsSqsListener"]
+        TDL["TasksDlqListener"]
+        TRDL["TaskResultsDlqListener"]
+    end
+
+    subgraph TC2 ["Task Converter"]
+        TWL["TaskWorkerSqsListener"]
+        CCS["ConvertCurrencyService"]
+        CIS["CalculateInterestService"]
+        TRP["TaskResultProducer"]
+    end
+
+    subgraph SQS ["AWS SQS"]
+        TQ[/"tasks.fifo"/]
+        TRQ[/"task-results.fifo"/]
+        TDLQ[/"tasks-dlq.fifo"/]
+        TRDLQ[/"task-results-dlq.fifo"/]
+    end
+
+    DB[("PostgreSQL")]
+
+    Client -->|"REST"| TC
+    TC --> TMgr
+    TMgr --> TS
+    TMgr --> TP
+    TS <--> DB
+
+    TP -->|publish| TQ
+    TQ -.->|"max retries exceeded"| TDLQ
+
+    TQ -->|consume| TWL
+    TWL --> CCS
+    TWL --> CIS
+    CCS --> TRP
+    CIS --> TRP
+    TRP -->|publish| TRQ
+    TRQ -.->|"max retries exceeded"| TRDLQ
+
+    TRQ -->|consume| TRL
+    TRL --> TS
+
+    TDLQ -->|consume| TDL
+    TDL --> TS
+
+    TRDLQ -->|consume| TRDL
+```
 
 ## Prerequisites
 
@@ -36,8 +116,8 @@ The system consists of two main components:
 ## Project Structure
 
 ```
-scalable_test/
-├── src/main/java/dev/eduardo/scalable_test/
+async-dispatch/
+├── src/main/java/dev/eduardo/async_dispatch/
 │   ├── common/                    # Shared domain and messages
 │   │   ├── domain/
 │   │   │   └── TaskType.java
@@ -67,7 +147,7 @@ scalable_test/
 ### 1.1 Clone and Build
 
 ```bash
-cd /Users/eduardo/dev/scalable_test
+cd async-dispatch
 ./gradlew clean build
 ```
 
@@ -225,7 +305,7 @@ Calculates simple interest for a given principal, rate, and time period.
 
 ```properties
 # Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/scalable_test
+spring.datasource.url=jdbc:postgresql://localhost:5432/async_dispatch
 spring.datasource.username=postgres
 spring.datasource.password=postgres
 
@@ -291,7 +371,7 @@ See [README-LOCALSTACK.md](README-LOCALSTACK.md) for detailed SQS monitoring com
 
 ```bash
 # Connect to PostgreSQL
-docker exec -it scalable-test-postgres psql -U postgres -d scalable_test
+docker exec -it async-dispatch-postgres psql -U postgres -d async_dispatch
 
 # View tasks
 SELECT id, type, status, created_at FROM tasks ORDER BY created_at DESC LIMIT 10;
