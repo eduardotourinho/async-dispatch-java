@@ -4,10 +4,10 @@ metadata:
   name: async-dispatch
   description: Distributed task processing system using Spring Boot, AWS SQS FIFO queues, and PostgreSQL.
   annotations:
-    github.com/project-slug: eduardotourinho/async-dispatch
+    github.com/project-slug: eduardotourinho/async-dispatch-java
     backstage.io/techdocs-ref: dir:.
   links:
-    - url: https://github.com/eduardotourinho/async-dispatch
+    - url: https://github.com/eduardotourinho/async-dispatch-java
       title: GitHub
       icon: github
   tags:
