@@ -9,12 +9,34 @@ The system consists of two main components:
 - **Task Manager**: REST API for task submission and status retrieval
 - **Task Converter**: Worker service that processes tasks from SQS queues
 
-**Flow:**
-1. Client submits task via REST API
-2. Task is saved to PostgreSQL with PENDING status
-3. Task message is sent to `tasks.fifo` SQS queue
-4. Worker processes the task and sends result to `task-results.fifo` queue
-5. Result listener updates task status to COMPLETED
+```mermaid
+sequenceDiagram
+    participant Client
+    participant REST API
+    participant PostgreSQL
+    participant tasks.fifo
+    participant Task Worker
+    participant task-results.fifo
+    participant Result Listener
+
+    Client->>REST API: POST /api/tasks
+    REST API->>PostgreSQL: Save task (PENDING)
+    REST API->>tasks.fifo: Publish task message
+    REST API-->>Client: 202 { taskId }
+
+    tasks.fifo->>Task Worker: Consume message
+    Note over Task Worker: ConvertCurrencyService<br/>or CalculateInterestService
+    Task Worker->>task-results.fifo: Publish result message
+    tasks.fifo-->>tasks-dlq.fifo: Failed messages (DLQ)
+
+    task-results.fifo->>Result Listener: Consume result
+    Result Listener->>PostgreSQL: Update task status (COMPLETED)
+    task-results.fifo-->>task-results-dlq.fifo: Failed messages (DLQ)
+
+    Client->>REST API: GET /api/tasks/{taskId}
+    REST API->>PostgreSQL: Fetch task
+    REST API-->>Client: 200 { status, result }
+```
 
 ## Prerequisites
 

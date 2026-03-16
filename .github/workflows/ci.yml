@@ -63,6 +63,8 @@ jobs:
       SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localhost:4566
       SPRING_CLOUD_AWS_SQS_TASKS_QUEUE_URL: http://localhost:4566/000000000000/tasks.fifo
       SPRING_CLOUD_AWS_SQS_TASK_RESULTS_QUEUE_URL: http://localhost:4566/000000000000/task-results.fifo
+      SPRING_CLOUD_AWS_SQS_TASKS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/tasks-dlq.fifo
+      SPRING_CLOUD_AWS_SQS_TASK_RESULTS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/task-results-dlq.fifo
 
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
 
