@@ -1,0 +1,29 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+group = 'dev.eduardo'
+version = '0.0.1-SNAPSHOT'
+description = 'async-dispatch-task-worker'
+
+springBoot {
+    buildInfo()
+}
+
+dependencies {
+    implementation project(':common')
+
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.projectlombok:lombok'
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs:3.1.1'
+
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:localstack'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

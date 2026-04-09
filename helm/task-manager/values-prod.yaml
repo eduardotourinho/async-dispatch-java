@@ -1,0 +1,42 @@
+replicaCount: 3
+
+image:
+  pullPolicy: Always
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+serviceAccount:
+  create: true
+  # Replace with the actual IAM role ARN that has SQS send/receive and RDS access
+  irsaRoleArn: "arn:aws:iam::123456789012:role/task-manager-irsa-role"
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 60
+
+pdb:
+  # In production, always keep at least 2 pods available during disruptions
+  enabled: true
+  minAvailable: 2
+
+aws:
+  region: us-east-1
+  endpointUrl: ""
+
+sqs:
+  tasksQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-tasks.fifo"
+  taskResultsQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-task-results.fifo"
+  tasksDlqQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-tasks-dlq.fifo"
+  taskResultsDlqQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-task-results-dlq.fifo"
+
+db:
+  url: "jdbc:postgresql://prod-rds-endpoint:5432/async_dispatch"
+  username: "async_dispatch_app"

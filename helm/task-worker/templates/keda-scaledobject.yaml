@@ -1,0 +1,39 @@
+{{- if .Values.keda.enabled -}}
+# KEDA ScaledObject — scales task-worker pods based on SQS queue depth.
+#
+# Why KEDA instead of standard HPA?
+# HPA scales on CPU/memory, which lags behind actual workload.
+# KEDA scales on the queue depth *directly*: when messages pile up,
+# new pods spin up immediately to drain the backlog. When the queue
+# is empty, pods scale to minReplicas (can be 0 for full scale-to-zero).
+#
+# identityOwner: pod — KEDA uses the pod's IRSA token to call
+# sqs:GetQueueAttributes. No separate KEDA AWS credentials needed.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "task-worker.fullname" . }}
+  labels:
+    {{- include "task-worker.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "task-worker.fullname" . }}
+  minReplicaCount: {{ .Values.keda.minReplicas }}
+  maxReplicaCount: {{ .Values.keda.maxReplicas }}
+  # How often KEDA polls the scaler (default 30s)
+  pollingInterval: 15
+  # How long to wait before scaling down after the queue drains (default 300s)
+  cooldownPeriod: 60
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: {{ .Values.sqs.tasksQueueUrl | quote }}
+        # Target number of messages per pod replica.
+        # With 50 messages and targetQueueLength=5: 50/5=10 pods (capped at maxReplicas).
+        queueLength: {{ .Values.keda.targetQueueLength | quote }}
+        awsRegion: {{ .Values.aws.region | quote }}
+        # Use the pod's IRSA token — no external secret required
+        identityOwner: pod
+{{- end }}

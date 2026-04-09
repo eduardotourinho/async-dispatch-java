@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "task-manager.fullname" . }}
+  labels:
+    {{- include "task-manager.labels" . | nindent 4 }}
+data:
+  AWS_REGION: {{ .Values.aws.region | quote }}
+  AWS_ENDPOINT_URL: {{ .Values.aws.endpointUrl | quote }}
+  SQS_TASKS_QUEUE_URL: {{ .Values.sqs.tasksQueueUrl | quote }}
+  SQS_TASK_RESULTS_QUEUE_URL: {{ .Values.sqs.taskResultsQueueUrl | quote }}
+  SQS_TASKS_DLQ_QUEUE_URL: {{ .Values.sqs.tasksDlqQueueUrl | quote }}
+  SQS_TASK_RESULTS_DLQ_QUEUE_URL: {{ .Values.sqs.taskResultsDlqQueueUrl | quote }}
+  DB_URL: {{ .Values.db.url | quote }}
+  DB_USERNAME: {{ .Values.db.username | quote }}

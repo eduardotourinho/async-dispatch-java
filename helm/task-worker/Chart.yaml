@@ -1,0 +1,8 @@
+apiVersion: v2
+name: task-worker
+description: >
+  Task Worker Service — SQS-driven processor for currency conversion and interest
+  calculation tasks. Scales horizontally based on SQS queue depth via KEDA.
+type: application
+version: 0.1.0
+appVersion: "0.0.1"

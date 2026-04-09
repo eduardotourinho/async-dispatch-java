@@ -1,0 +1,58 @@
+replicaCount: 1
+
+image:
+  repository: task-worker
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+serviceAccount:
+  create: true
+  # IRSA role must have: sqs:ReceiveMessage, sqs:DeleteMessage, sqs:SendMessage,
+  # sqs:GetQueueAttributes (KEDA needs GetQueueAttributes to read queue depth).
+  irsaRoleArn: ""
+
+keda:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  # Scale out when more than this many messages are waiting per pod replica.
+  # e.g. targetQueueLength=5 with 50 messages → 10 pods (at maxReplicas cap).
+  targetQueueLength: "5"
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+aws:
+  region: us-east-1
+  endpointUrl: ""
+
+sqs:
+  tasksQueueUrl: ""
+  taskResultsQueueUrl: ""
+  tasksDlqQueueUrl: ""
+  taskResultsDlqQueueUrl: ""
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8080
+  initialDelaySeconds: 45
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  failureThreshold: 3

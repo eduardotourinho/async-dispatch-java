@@ -1,0 +1,25 @@
+# Production overlay — higher replicas, real SQS, stricter PDB.
+# Usage: kubectl apply -k k8s/overlays/prod --dry-run=client
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: async-dispatch-prod
+
+helmCharts:
+  - name: task-manager
+    releaseName: task-manager
+    repo: file://../../../helm/task-manager
+    version: "0.1.0"
+    valuesFile: ../../../helm/task-manager/values-prod.yaml
+
+  - name: task-worker
+    releaseName: task-worker
+    repo: file://../../../helm/task-worker
+    version: "0.1.0"
+    valuesFile: ../../../helm/task-worker/values-prod.yaml
+
+patches:
+  - path: patch-resources.yaml
+    target:
+      kind: Deployment
+      name: task-manager
