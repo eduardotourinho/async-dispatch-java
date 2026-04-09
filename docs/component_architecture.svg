@@ -23,7 +23,8 @@
 
 <!-- Task Manager boundary -->
 <rect class="dash" x="20" y="118" width="320" height="490" rx="12"/>
-<text class="ts" x="180" y="135" text-anchor="middle" dominant-baseline="central">Task Manager</text>
+<text class="ts" x="180" y="131" text-anchor="middle" dominant-baseline="central" font-weight="500">task-manager</text>
+<text class="ts" x="180" y="144" text-anchor="middle" dominant-baseline="central" font-style="italic">:8080</text>
 <rect x="34" y="150" width="292" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
 <text class="th tt" x="180" y="170" text-anchor="middle" dominant-baseline="central">TaskController</text>
 <rect x="34" y="210" width="292" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
@@ -39,9 +40,10 @@
 <rect x="34" y="530" width="292" height="40" rx="6" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
 <text class="th tt" x="180" y="550" text-anchor="middle" dominant-baseline="central">TaskResultsDlqListener</text>
 
-<!-- Task Converter boundary -->
+<!-- Task Worker boundary -->
 <rect class="dash" x="820" y="118" width="320" height="370" rx="12"/>
-<text class="ts" x="980" y="135" text-anchor="middle" dominant-baseline="central">Task Converter</text>
+<text class="ts" x="980" y="131" text-anchor="middle" dominant-baseline="central" font-weight="500">task-worker</text>
+<text class="ts" x="980" y="144" text-anchor="middle" dominant-baseline="central" font-style="italic">:8081</text>
 <rect x="834" y="150" width="292" height="40" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
 <text class="th tp" x="980" y="170" text-anchor="middle" dominant-baseline="central">TaskWorkerSqsListener</text>
 <rect x="834" y="210" width="292" height="40" rx="6" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
@@ -153,9 +155,9 @@
 <rect x="40"  y="842" width="14" height="14" rx="3" fill="#E6F1FB" stroke="#185FA5" stroke-width="1"/>
 <text class="ts" x="60"  y="849" dominant-baseline="central">HTTP Client</text>
 <rect x="180" y="842" width="14" height="14" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
-<text class="ts" x="200" y="849" dominant-baseline="central">Task Manager</text>
-<rect x="340" y="842" width="14" height="14" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
-<text class="ts" x="360" y="849" dominant-baseline="central">Task Converter</text>
+<text class="ts" x="200" y="849" dominant-baseline="central">task-manager (service)</text>
+<rect x="390" y="842" width="14" height="14" rx="3" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+<text class="ts" x="410" y="849" dominant-baseline="central">task-worker (service)</text>
 <rect x="510" y="842" width="14" height="14" rx="3" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
 <text class="ts" x="530" y="849" dominant-baseline="central">SQS queue</text>
 <rect x="650" y="842" width="14" height="14" rx="3" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1"/>

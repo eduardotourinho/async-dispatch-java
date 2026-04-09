@@ -1,13 +1,16 @@
-# Async Dispatch - Distributed Task Processing System
+# Async Dispatch — Distributed Task Processing System
 
-A Spring Boot application demonstrating scalable task processing using AWS SQS FIFO queues and PostgreSQL, with LocalStack for local development.
+A Spring Boot system demonstrating scalable async task processing using AWS SQS FIFO queues and PostgreSQL, structured as independently deployable microservices with production-grade Kubernetes delivery.
 
 ## Architecture
 
-The system consists of two main components:
+The repository is a multi-module Gradle monorepo with three subprojects:
 
-- **Task Manager**: REST API for task submission and status retrieval
-- **Task Converter**: Worker service that processes tasks from SQS queues
+| Module | Role |
+|--------|------|
+| **common** | Shared library — message DTOs and `TaskType` enum |
+| **task-manager** | REST API for task submission and status retrieval; persists state to PostgreSQL |
+| **task-worker** | SQS consumer; processes tasks and publishes results back via a second queue |
 
 ![task_sequence_diagram.svg](docs/task_sequence_diagram.svg)
 
@@ -15,100 +18,86 @@ The system consists of two main components:
 
 ![component_architecture.svg](docs/component_architecture.svg)
 
-## Prerequisites
-
-- Java 21+
-- Docker & Docker Compose
-- Gradle 8.x
-
-
 ## Technology Stack
 
-- **Spring Boot 3.4.5** - Application framework
-- **Spring Cloud AWS SQS 3.1.1** - SQS integration
-- **PostgreSQL 17** - Database
-- **Hibernate 6.6** - ORM
-- **LocalStack** - Local AWS services
-- **Terraform** - Infrastructure as Code
-- **Docker Compose** - Local development environment
+| Component | Technology |
+|-----------|-----------|
+| Framework | Spring Boot 3.5.10 |
+| SQS integration | Spring Cloud AWS 3.1.1 |
+| Database | PostgreSQL 17 |
+| Schema migrations | Flyway |
+| ORM | Hibernate 6.6 |
+| Local AWS | LocalStack |
+| Container orchestration | Kubernetes (Helm + Kustomize) |
+| Autoscaling | KEDA (SQS queue-depth) · HPA (CPU) |
+| Infrastructure | Terraform |
+| Runtime | Java 21 |
 
 ## Project Structure
 
 ```
 async-dispatch/
-├── src/main/java/dev/eduardo/async_dispatch/
-│   ├── common/                    # Shared domain and messages
-│   │   ├── domain/
-│   │   │   └── TaskType.java
-│   │   └── sqs/
-│   │       ├── CalculateInterestMessage.java
-│   │       └── ConvertCurrencyMessage.java
-│   ├── taskmanager/              # Task Manager module
-│   │   ├── api/                  # REST controllers
-│   │   ├── domain/               # Entities and repositories
-│   │   └── service/              # Business logic and SQS producers
-│   └── taskconverter/            # Task Converter module
-│       └── service/              # Task processing and SQS consumers
+├── common/                        # Shared library
+│   └── src/main/java/.../common/
+│       ├── domain/TaskType.java
+│       └── sqs/                   # Message DTOs
+├── task-manager/                  # REST API service
+│   ├── Dockerfile
+│   └── src/main/
+│       ├── java/.../taskmanager/
+│       │   ├── api/               # Controllers, request/response types
+│       │   ├── config/            # AwsConfig (IRSA-aware)
+│       │   ├── domain/            # JPA entities, repository
+│       │   └── service/           # Business logic, SQS producers & listeners
+│       └── resources/
+│           ├── application.properties
+│           └── db/migration/      # Flyway migrations
+├── task-worker/                   # SQS worker service
+│   ├── Dockerfile
+│   └── src/main/java/.../taskworker/
+│       ├── config/                # AwsConfig (IRSA-aware)
+│       └── service/               # Task processors, SQS listener & producer
+├── helm/
+│   ├── task-manager/              # Helm chart (HPA, PDB, IRSA ServiceAccount)
+│   └── task-worker/               # Helm chart (KEDA ScaledObject, PDB, IRSA ServiceAccount)
+├── k8s/overlays/
+│   ├── dev/                       # Kustomize overlay — LocalStack, minimal resources
+│   └── prod/                      # Kustomize overlay — real SQS, higher replicas
 ├── infrastructure/
-│   ├── localstack/               # LocalStack initialization
-│   │   └── init-sqs.sh
-│   └── terraform/                # Production infrastructure
-│       ├── main.tf
-│       ├── rds.tf
-│       ├── variables.tf
-│       └── outputs.tf
-└── docker-compose.yml            # Local development setup
+│   ├── localstack/init-sqs.sh     # Auto-creates FIFO queues on LocalStack startup
+│   └── terraform/                 # SQS queues + RDS PostgreSQL
+└── docker-compose.yml             # Full local stack (Postgres, LocalStack, both services)
 ```
 
+## Quick Start
 
-## 1. Setup Instructions
+### Prerequisites
 
-### 1.1 Clone and Build
+- Java 21+
+- Docker & Docker Compose
 
-```bash
-cd async-dispatch
-./gradlew clean build
-```
-
-### 1.2 Start Infrastructure
+### 1. Start the full stack
 
 ```bash
 docker-compose up -d
 ```
 
-This starts:
-- **PostgreSQL 17** on port `5432`
-- **LocalStack SQS** on port `4566` with FIFO queues
+This starts PostgreSQL, LocalStack (SQS), task-manager on port `8080`, and task-worker on port `8081`. LocalStack automatically creates all four FIFO queues on startup.
 
-> **📘 For detailed LocalStack configuration and testing commands, see [README-LOCALSTACK.md](README-LOCALSTACK.md)**
-
-## 2. Run Both Applications
-
-Currently, running the main application with initialize both the `TaskManager` module and the `TaskConverter`.
-
-### Option A: Run from IDE
-
-#### Task Manager (Port 8080)
-1. Open the project in IntelliJ IDEA
-2. Run `ScalableTestApplication.java`
-3. The application will start on `http://localhost:8080`
-
-### Option B: Run from Command Line
+### 2. Verify both services are healthy
 
 ```bash
-./gradlew bootRun
+curl http://localhost:8080/actuator/health   # task-manager
+curl http://localhost:8081/actuator/health   # task-worker
 ```
 
-### Verify Applications are Running
+### 3. Browse the API
 
-```bash
-# Task Manager health check
-curl http://localhost:8080/actuator/health
-```
+Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
-## 3. API Usage Examples
+## API Usage
 
-### 3.1 Submit Currency Conversion Task
+### Submit a currency conversion task
 
 ```bash
 curl -X POST http://localhost:8080/api/tasks \
@@ -123,17 +112,11 @@ curl -X POST http://localhost:8080/api/tasks \
   }'
 ```
 
-**Response:**
-
-The created task ID. Use this ID to make the `GET` request
-
 ```json
-{
-  "taskId": "8e87f12d-57b3-49af-b1cf-7b7df136955b"
-}
+{ "taskId": "8e87f12d-57b3-49af-b1cf-7b7df136955b" }
 ```
 
-### 3.2 Submit Interest Calculation Task
+### Submit an interest calculation task
 
 ```bash
 curl -X POST http://localhost:8080/api/tasks \
@@ -148,170 +131,95 @@ curl -X POST http://localhost:8080/api/tasks \
   }'
 ```
 
-**Response:**
-
-The created task ID. Use this ID to make the `GET` request
-
-```json
-{
-  "taskId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
-
-### 3.3 Get Task Status and Result
+### Poll for the result
 
 ```bash
 curl http://localhost:8080/api/tasks/{taskId}
 ```
 
-Replace `{taskId}` with the ID from the submission response.
-
-**Response (Pending):**
+**Pending:**
 ```json
-{
-  "id": "8e87f12d-57b3-49af-b1cf-7b7df136955b",
-  "type": "convert_currency",
-  "payload": {
-    "amount": 100.0,
-    "fromCurrency": "EUR",
-    "toCurrency": "USD"
-  },
-  "result": null,
-  "status": "PENDING"
-}
+{ "id": "...", "type": "convert_currency", "status": "PENDING", "result": null }
 ```
 
-**Response (Completed):**
+**Completed:**
 ```json
-{
-  "id": "8e87f12d-57b3-49af-b1cf-7b7df136955b",
-  "type": "convert_currency",
-  "payload": {
-    "amount": 100.0,
-    "fromCurrency": "EUR",
-    "toCurrency": "USD"
-  },
-  "result": "110.00",
-  "status": "COMPLETED"
-}
+{ "id": "...", "type": "convert_currency", "status": "COMPLETED", "result": "110.00" }
 ```
 
 ## Supported Task Types
 
-### Convert Currency
-Converts an amount from one currency to another using mock exchange rates.
+| Type | Payload fields | Formula |
+|------|---------------|---------|
+| `convert_currency` | `amount`, `fromCurrency`, `toCurrency` | Static exchange rates (EUR, USD, GBP) |
+| `calculate_interest` | `principal`, `annualRate` (%), `days` | Simple interest: P × R × (days / 365) |
 
-**Supported currencies:** EUR, USD, GBP (Currently those are mocks. In a real environment, we could support many more currencies)
+## Running Locally (without Docker)
 
-**Payload:**
-- `amount` (Double): Amount to convert
-- `fromCurrency` (String): Source currency code
-- `toCurrency` (String): Target currency code
+Build all modules:
 
-### Calculate Interest
-Calculates simple interest for a given principal, rate, and time period.
-
-**Formula:** Interest = Principal × Rate × (Days / 365)
-
-**Payload:**
-- `principal` (Double): Principal amount
-- `annualRate` (Double): Annual interest rate (as percentage, e.g., 5.5 for 5.5%)
-- `days` (Integer): Number of days
-
-## Configuration
-
-### Local Development (application.properties)
-
-```properties
-# Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/async_dispatch
-spring.datasource.username=postgres
-spring.datasource.password=postgres
-
-# AWS/SQS
-spring.cloud.aws.region.static=us-east-1
-spring.cloud.aws.endpoint=http://localhost:4566
-spring.cloud.aws.sqs.tasks-queue-url=http://localhost:4566/000000000000/tasks.fifo
-spring.cloud.aws.sqs.task-results-queue-url=http://localhost:4566/000000000000/task-results.fifo
+```bash
+./gradlew build
 ```
 
-### Production Deployment
+Start infrastructure only:
 
-For production deployment using Terraform:
+```bash
+docker-compose up -d postgres localstack
+```
 
-1. Navigate to the Terraform directory:
+Run each service in a separate terminal:
+
+```bash
+# task-manager
+AWS_ENDPOINT_URL=http://localhost:4566 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+DB_URL=jdbc:postgresql://localhost:5432/async_dispatch DB_USERNAME=postgres DB_PASSWORD=postgres \
+./gradlew :task-manager:bootRun
+
+# task-worker
+AWS_ENDPOINT_URL=http://localhost:4566 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
+./gradlew :task-worker:bootRun
+```
+
+## Kubernetes Deployment
+
+Each service has a Helm chart. Use the Kustomize overlays to render and apply them:
+
+```bash
+# Preview
+kubectl apply -k k8s/overlays/prod --dry-run=client
+
+# Apply
+kubectl apply -k k8s/overlays/prod
+```
+
+**task-worker** scales automatically based on SQS queue depth via [KEDA](https://keda.sh) — no manual scaling needed during bursts. **task-manager** uses a standard HPA (CPU-based).
+
+Both services use IRSA (`eks.amazonaws.com/role-arn` on the `ServiceAccount`) — no hardcoded AWS credentials in production.
+
+See [docs/infrastructure.md](docs/infrastructure.md) for the full Helm + Kustomize + KEDA setup.
+
+## Infrastructure (Terraform)
+
 ```bash
 cd infrastructure/terraform
+cp terraform.tfvars.example terraform.tfvars  # fill in your values
+terraform init && terraform apply
 ```
 
-2. Create `terraform.tfvars`:
-```hcl
-aws_region     = "us-east-1"
-aws_access_key = "your-access-key"
-aws_secret_key = "your-secret-key"
-aws_account_id = "123456789012"
-environment    = "prod"
-
-# RDS Configuration
-vpc_id              = "vpc-xxxxx"
-db_subnet_ids       = ["subnet-xxxxx", "subnet-yyyyy"]
-allowed_cidr_blocks = ["10.0.0.0/16"]
-db_username         = "dbadmin"
-db_password         = "secure-password"
-```
-
-3. Deploy infrastructure:
-```bash
-terraform init
-terraform validate
-terraform plan
-terraform apply
-```
-
-4. Update application properties with production values from Terraform outputs.
+Creates: SQS FIFO queues (with DLQs) and RDS PostgreSQL. See [docs/infrastructure.md](docs/infrastructure.md) for details.
 
 ## Monitoring
 
-### View Application Logs
-
 ```bash
-# Task Manager logs
-tail -f logs/task-manager.log
+# SQS queue depth (LocalStack)
+aws --endpoint-url=http://localhost:4566 sqs get-queue-attributes \
+  --queue-url http://localhost:4566/000000000000/tasks.fifo \
+  --attribute-names ApproximateNumberOfMessages
 
-# Task Converter logs
-tail -f logs/task-converter.log
+# Database
+docker exec -it async-dispatch-postgres psql -U postgres -d async_dispatch \
+  -c "SELECT id, type, status, created_at FROM tasks ORDER BY created_at DESC LIMIT 10;"
 ```
 
-### Monitor SQS Queues
-
-See [README-LOCALSTACK.md](README-LOCALSTACK.md) for detailed SQS monitoring commands.
-
-### Check Database
-
-```bash
-# Connect to PostgreSQL
-docker exec -it async-dispatch-postgres psql -U postgres -d async_dispatch
-
-# View tasks
-SELECT id, type, status, created_at FROM tasks ORDER BY created_at DESC LIMIT 10;
-
-# View task results
-SELECT tr.id, tr.result, t.type, tr.created_at 
-FROM "task-results" tr 
-JOIN tasks t ON tr.task_id = t.id 
-ORDER BY tr.created_at DESC LIMIT 10;
-```
-
-### Tasks stuck in PENDING status
-
-Check that the Task Converter application is running and consuming from the queue.
-
-For SQS message verification and DLQ monitoring, see [README-LOCALSTACK.md](README-LOCALSTACK.md).
-
-## Considerations
-
-- Both modules (TaskManager and TaskConverter) are running inside the same application. Ideally we should split those modules so we can be able to run them separately. This is required for better performance and scalability
-- The `TaskConverter` is not reliable in the current state. Any errors that can happen while executing the tasks we would lose the data. It need some kind of retrying capabilities.
-- Considering that I am in the Application Framework team:
-  - Keep the authorization/authentication outside the application. That should be centralized on the organization level to avoid any security issues.
-  - Create a template for the terraform deployment introducing some constraints. We should give the teams liberty to deploy their own application, but with some guard-rails (i.e. aws region, database versions)
+Full actuator metrics are available at `/actuator/metrics` on both services.

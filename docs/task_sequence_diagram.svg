@@ -34,7 +34,8 @@
 <text class="th tb" x="70" y="44" text-anchor="middle" dominant-baseline="central">Client</text>
 
 <rect class="hdr-teal" x="160" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
-<text class="th tt" x="220" y="44" text-anchor="middle" dominant-baseline="central">REST API</text>
+<text class="th tt" x="220" y="37" text-anchor="middle" dominant-baseline="central">Task Manager</text>
+<text class="tn" x="220" y="55" text-anchor="middle" dominant-baseline="central">:8080</text>
 
 <rect class="hdr-coral" x="310" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
 <text class="th tc" x="370" y="44" text-anchor="middle" dominant-baseline="central">PostgreSQL</text>
@@ -43,14 +44,16 @@
 <text class="th ta" x="510" y="44" text-anchor="middle" dominant-baseline="central">tasks.fifo</text>
 
 <rect class="hdr-purple" x="580" y="20" width="120" height="48" rx="8" stroke-width="0.5"/>
-<text class="th tp" x="640" y="44" text-anchor="middle" dominant-baseline="central">Task Worker</text>
+<text class="th tp" x="640" y="37" text-anchor="middle" dominant-baseline="central">Task Worker</text>
+<text class="tn" x="640" y="55" text-anchor="middle" dominant-baseline="central">:8081</text>
 
 <rect class="hdr-amber" x="718" y="20" width="124" height="48" rx="8" stroke-width="0.5"/>
 <text class="th ta" x="780" y="37" text-anchor="middle" dominant-baseline="central">task-results</text>
 <text class="th ta" x="780" y="55" text-anchor="middle" dominant-baseline="central">.fifo</text>
 
-<rect class="hdr-purple" x="858" y="20" width="124" height="48" rx="8" stroke-width="0.5"/>
-<text class="th tp" x="920" y="44" text-anchor="middle" dominant-baseline="central">Result Listener</text>
+<rect class="hdr-teal" x="858" y="20" width="124" height="48" rx="8" stroke-width="0.5"/>
+<text class="th tt" x="920" y="37" text-anchor="middle" dominant-baseline="central">Task Manager</text>
+<text class="tn" x="920" y="55" text-anchor="middle" dominant-baseline="central">(SQS listener)</text>
 
 <!-- Lifelines -->
 <line class="life" x1="70"  y1="68" x2="70"  y2="830"/>
