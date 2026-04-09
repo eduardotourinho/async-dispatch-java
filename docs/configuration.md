@@ -1,76 +1,76 @@
 # Configuration
 
-All configuration lives in `src/main/resources/application.properties`. The table below documents every key, its default value for local development, and what it controls.
+Both services are configured entirely through environment variables. The `application.properties` in each module defines defaults suitable for local development; override them in production via Kubernetes ConfigMaps and Secrets (see [Infrastructure](infrastructure.md)).
 
-## Database
+## task-manager
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `spring.datasource.url` | `jdbc:postgresql://localhost:5432/async_dispatch` | JDBC connection URL for PostgreSQL |
-| `spring.datasource.username` | `postgres` | Database username |
-| `spring.datasource.password` | `postgres` | Database password |
-| `spring.datasource.driver-class-name` | `org.postgresql.Driver` | JDBC driver class |
+### Database
 
-## JPA / Hibernate
+| Environment Variable | Default (local) | Description |
+|---------------------|-----------------|-------------|
+| `DB_URL` | `jdbc:postgresql://localhost:5432/async_dispatch` | JDBC connection URL |
+| `DB_USERNAME` | `postgres` | Database username |
+| `DB_PASSWORD` | `postgres` | Database password |
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `spring.jpa.hibernate.ddl-auto` | `update` | Schema management strategy. `update` applies incremental DDL changes on startup |
-| `spring.jpa.show-sql` | `true` | Logs generated SQL statements to stdout |
-| `spring.jpa.properties.hibernate.dialect` | `org.hibernate.dialect.PostgreSQLDialect` | Hibernate SQL dialect |
-| `spring.jpa.properties.hibernate.format_sql` | `true` | Pretty-prints logged SQL |
+### Schema Migrations (Flyway)
 
-## AWS / SQS
+Flyway is enabled by default (`spring.flyway.enabled=true`). On startup, task-manager applies any pending migrations from `src/main/resources/db/migration/`. The initial migration (`V1__init_schema.sql`) creates the `tasks` and `task_results` tables.
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `spring.cloud.aws.region.static` | `us-east-1` | AWS region (static, no instance metadata lookup) |
-| `spring.cloud.aws.credentials.access-key` | `test` | AWS access key — use `test` for LocalStack |
-| `spring.cloud.aws.credentials.secret-key` | `test` | AWS secret key — use `test` for LocalStack |
-| `spring.cloud.aws.endpoint` | `http://localhost:4566` | AWS SDK endpoint override; points to LocalStack locally. Remove for production |
-| `spring.cloud.aws.sqs.enabled` | `true` | Enables the Spring Cloud AWS SQS integration |
-| `spring.cloud.aws.sqs.endpoint` | `http://localhost:4566` | SQS-specific endpoint override for LocalStack |
+`hibernate.ddl-auto` is not set — schema management is handled exclusively by Flyway.
 
-## SQS Queue URLs
+### AWS / SQS
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `spring.cloud.aws.sqs.tasks-queue-url` | `http://localhost:4566/000000000000/tasks.fifo` | URL of the main task processing queue |
-| `spring.cloud.aws.sqs.task-results-queue-url` | `http://localhost:4566/000000000000/task-results.fifo` | URL of the task results queue |
-| `spring.cloud.aws.sqs.tasks-dlq-queue-url` | `http://localhost:4566/000000000000/tasks-dlq.fifo` | URL of the tasks dead letter queue |
-| `spring.cloud.aws.sqs.task-results-dlq-queue-url` | `http://localhost:4566/000000000000/task-results-dlq.fifo` | URL of the task results dead letter queue |
+| Environment Variable | Default (local) | Description |
+|---------------------|-----------------|-------------|
+| `AWS_REGION` | `us-east-1` | AWS region |
+| `AWS_ENDPOINT_URL` | _(empty)_ | Set to `http://localhost:4566` for LocalStack. When empty, the service uses `DefaultCredentialsProvider` (IRSA in production). |
+| `AWS_ACCESS_KEY_ID` | _(empty)_ | Only used when `AWS_ENDPOINT_URL` is set |
+| `AWS_SECRET_ACCESS_KEY` | _(empty)_ | Only used when `AWS_ENDPOINT_URL` is set |
+| `SQS_TASKS_QUEUE_URL` | `http://localhost:4566/000000000000/tasks.fifo` | Tasks queue URL |
+| `SQS_TASK_RESULTS_QUEUE_URL` | `http://localhost:4566/000000000000/task-results.fifo` | Results queue URL |
+| `SQS_TASKS_DLQ_QUEUE_URL` | `http://localhost:4566/000000000000/tasks-dlq.fifo` | Tasks DLQ URL |
+| `SQS_TASK_RESULTS_DLQ_QUEUE_URL` | `http://localhost:4566/000000000000/task-results-dlq.fifo` | Results DLQ URL |
 
-## Actuator
+## task-worker
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `management.endpoints.web.exposure.include` | `health,info,metrics,env` | Endpoints exposed over HTTP |
-| `management.endpoint.health.show-details` | `always` | Shows full health component details |
-| `management.info.env.enabled` | `true` | Exposes `info.*` properties via `/actuator/info` |
-| `management.info.java.enabled` | `true` | Includes JVM version in `/actuator/info` |
-| `management.info.build.enabled` | `true` | Includes build metadata in `/actuator/info` (populated by `springBoot.buildInfo()`) |
-| `info.app.name` | `async-dispatch` | Application name shown in `/actuator/info` |
-| `info.app.version` | `0.0.1` | Application version shown in `/actuator/info` |
+task-worker has no database. Its environment variables are a subset of the above (SQS only):
 
-## Springdoc / OpenAPI
+| Environment Variable | Default (local) | Description |
+|---------------------|-----------------|-------------|
+| `AWS_REGION` | `us-east-1` | AWS region |
+| `AWS_ENDPOINT_URL` | _(empty)_ | LocalStack endpoint (local only) |
+| `AWS_ACCESS_KEY_ID` | _(empty)_ | Local only |
+| `AWS_SECRET_ACCESS_KEY` | _(empty)_ | Local only |
+| `SQS_TASKS_QUEUE_URL` | `http://localhost:4566/000000000000/tasks.fifo` | Queue to consume from |
+| `SQS_TASK_RESULTS_QUEUE_URL` | `http://localhost:4566/000000000000/task-results.fifo` | Queue to publish results to |
+| `SQS_TASKS_DLQ_QUEUE_URL` | `http://localhost:4566/000000000000/tasks-dlq.fifo` | DLQ URL (for logging) |
+| `SQS_TASK_RESULTS_DLQ_QUEUE_URL` | `http://localhost:4566/000000000000/task-results-dlq.fifo` | Results DLQ URL (for logging) |
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `springdoc.api-docs.path` | `/api-docs` | Path for the OpenAPI JSON spec |
-| `springdoc.swagger-ui.path` | `/swagger-ui.html` | Path for the Swagger UI |
+## Actuator (both services)
 
-## Miscellaneous
+Both services expose `/actuator/health/liveness` and `/actuator/health/readiness` — these are wired to the Kubernetes liveness and readiness probes in the Helm charts.
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `spring.application.name` | `async-dispatch` | Application name reported in logs and actuator |
-| `spring.docker.compose.enabled` | `false` | Disables Spring Boot's automatic Docker Compose lifecycle management |
+| Endpoint | URL |
+|----------|-----|
+| Health | `/actuator/health` |
+| Liveness probe | `/actuator/health/liveness` |
+| Readiness probe | `/actuator/health/readiness` |
+| Metrics | `/actuator/metrics` |
+| Info | `/actuator/info` |
+
+## Springdoc / OpenAPI (task-manager only)
+
+| Path | Description |
+|------|-------------|
+| `/api-docs` | OpenAPI JSON spec |
+| `/swagger-ui.html` | Swagger UI |
 
 ## Production Overrides
 
-For production, replace the LocalStack-specific values with real AWS endpoints and credentials (or use IAM instance profiles). At minimum, update:
+In production (EKS), environment variables are injected via Kubernetes:
 
-- `spring.cloud.aws.credentials.access-key` / `secret-key` (or switch to `spring.cloud.aws.credentials.instance-profile=true`)
-- Remove `spring.cloud.aws.endpoint` and `spring.cloud.aws.sqs.endpoint` to use real AWS endpoints
-- Update all four SQS queue URLs with values from Terraform outputs
-- Update `spring.datasource.url` with the RDS endpoint from Terraform outputs
+- Non-sensitive values (queue URLs, region, DB URL, DB username) come from a **ConfigMap** rendered by the Helm chart.
+- Sensitive values (`DB_PASSWORD`) come from a **Kubernetes Secret** referenced in the Deployment.
+- AWS credentials are **not set** — the pod uses its IRSA `ServiceAccount` instead. The `AwsConfig` bean detects the absence of `AWS_ENDPOINT_URL` and falls back to `DefaultCredentialsProvider`, which picks up the projected service account token automatically.
+
+See the Helm values files (`helm/task-manager/values-prod.yaml`, `helm/task-worker/values-prod.yaml`) for production queue URLs and IRSA role ARNs.

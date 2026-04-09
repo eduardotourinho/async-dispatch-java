@@ -14,7 +14,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: async-dispatch-db
-  description: PostgreSQL database storing task records and results for the async-dispatch system.
+  description: PostgreSQL database storing task records and results for the async-dispatch system. Schema managed by Flyway.
   tags:
     - postgresql
     - database
@@ -27,7 +27,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: async-dispatch-tasks-queue
-  description: AWS SQS FIFO queue (tasks.fifo) used to dispatch incoming task messages.
+  description: AWS SQS FIFO queue (tasks.fifo) — dispatches task messages from task-manager to task-worker.
   tags:
     - aws-sqs
     - message-queue
@@ -40,7 +40,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
   name: async-dispatch-task-results-queue
-  description: AWS SQS FIFO queue (task-results.fifo) used to deliver processed task results.
+  description: AWS SQS FIFO queue (task-results.fifo) — delivers processed results from task-worker back to task-manager.
   tags:
     - aws-sqs
     - message-queue
@@ -52,8 +52,12 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: async-dispatch-java
-  description: Distributed task processing system using Spring Boot, AWS SQS FIFO queues, and PostgreSQL.
+  name: async-dispatch-task-manager
+  description: >
+    REST API service for submitting async tasks and retrieving their status.
+    Persists task state to PostgreSQL (Flyway migrations), dispatches work via
+    SQS FIFO queues, and consumes result messages to update task records.
+    Scales horizontally via HPA (CPU-based).
   annotations:
     github.com/project-slug: eduardotourinho/async-dispatch-java
     backstage.io/techdocs-ref: dir:.
@@ -66,6 +70,7 @@ metadata:
     - spring-boot
     - aws-sqs
     - postgresql
+    - kubernetes
 spec:
   type: service
   owner: user:default/eduardo-tourinho
@@ -75,6 +80,37 @@ spec:
     - async-dispatch-api
   dependsOn:
     - resource:default/async-dispatch-db
+    - resource:default/async-dispatch-tasks-queue
+    - resource:default/async-dispatch-task-results-queue
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: async-dispatch-task-worker
+  description: >
+    SQS-driven worker service that consumes tasks from tasks.fifo, executes
+    currency conversion and interest calculation, and publishes results to
+    task-results.fifo. Scales to zero and back via KEDA (SQS queue-depth-based
+    autoscaling) — no database dependency.
+  annotations:
+    github.com/project-slug: eduardotourinho/async-dispatch-java
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: https://github.com/eduardotourinho/async-dispatch-java
+      title: GitHub
+      icon: github
+  tags:
+    - java
+    - spring-boot
+    - aws-sqs
+    - kubernetes
+    - keda
+spec:
+  type: service
+  owner: user:default/eduardo-tourinho
+  lifecycle: experimental
+  system: async-dispatch
+  dependsOn:
     - resource:default/async-dispatch-tasks-queue
     - resource:default/async-dispatch-task-results-queue
 ---
