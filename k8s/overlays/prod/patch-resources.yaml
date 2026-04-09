@@ -1,0 +1,19 @@
+# Example Kustomize patch: override resource limits for the task-manager Deployment
+# without modifying the Helm chart itself. This is useful for environment-specific
+# tuning that shouldn't be baked into the chart's values.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-manager
+spec:
+  template:
+    spec:
+      containers:
+        - name: task-manager
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 2Gi

@@ -8,8 +8,13 @@ services:
       - POSTGRES_DB=async_dispatch
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  sqs:
+  localstack:
     image: localstack/localstack:latest
     container_name: localstack-sqs
     ports:
@@ -23,13 +28,53 @@ services:
     volumes:
       - "./infrastructure/localstack:/etc/localstack/init/ready.d"
       - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:4566/_localstack/health | grep -q 'running'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  service:
-    container_name: async-dispatch-service
+  task-manager:
+    container_name: async-dispatch-task-manager
     build:
       context: .
+      dockerfile: task-manager/Dockerfile
     ports:
-      - '8080:8080'
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/async_dispatch
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - SQS_TASKS_QUEUE_URL=http://localstack:4566/000000000000/tasks.fifo
+      - SQS_TASK_RESULTS_QUEUE_URL=http://localstack:4566/000000000000/task-results.fifo
+      - SQS_TASKS_DLQ_QUEUE_URL=http://localstack:4566/000000000000/tasks-dlq.fifo
+      - SQS_TASK_RESULTS_DLQ_QUEUE_URL=http://localstack:4566/000000000000/task-results-dlq.fifo
     depends_on:
-      - postgres
-      - sqs
+      postgres:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  task-worker:
+    container_name: async-dispatch-task-worker
+    build:
+      context: .
+      dockerfile: task-worker/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - AWS_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - SQS_TASKS_QUEUE_URL=http://localstack:4566/000000000000/tasks.fifo
+      - SQS_TASK_RESULTS_QUEUE_URL=http://localstack:4566/000000000000/task-results.fifo
+      - SQS_TASKS_DLQ_QUEUE_URL=http://localstack:4566/000000000000/tasks-dlq.fifo
+      - SQS_TASK_RESULTS_DLQ_QUEUE_URL=http://localstack:4566/000000000000/task-results-dlq.fifo
+    depends_on:
+      localstack:
+        condition: service_healthy

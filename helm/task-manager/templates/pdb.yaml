@@ -1,0 +1,16 @@
+{{- if .Values.pdb.enabled -}}
+# PodDisruptionBudget guarantees at least minAvailable pods remain running
+# during voluntary disruptions (node drains, cluster upgrades).
+# Without this, a rolling update or scale-down could take the service offline briefly.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "task-manager.fullname" . }}
+  labels:
+    {{- include "task-manager.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "task-manager.selectorLabels" . | nindent 6 }}
+{{- end }}

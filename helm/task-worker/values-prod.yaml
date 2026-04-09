@@ -1,0 +1,36 @@
+replicaCount: 2
+
+image:
+  pullPolicy: Always
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+serviceAccount:
+  create: true
+  irsaRoleArn: "arn:aws:iam::123456789012:role/task-worker-irsa-role"
+
+keda:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 50
+  targetQueueLength: "5"
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+aws:
+  region: us-east-1
+  endpointUrl: ""
+
+sqs:
+  tasksQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-tasks.fifo"
+  taskResultsQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-task-results.fifo"
+  tasksDlqQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-tasks-dlq.fifo"
+  taskResultsDlqQueueUrl: "https://sqs.us-east-1.amazonaws.com/123456789012/prod-task-results-dlq.fifo"

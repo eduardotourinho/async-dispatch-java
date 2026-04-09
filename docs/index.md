@@ -1,15 +1,16 @@
 # Async Dispatch – Distributed Task Processing
 
-A Spring Boot application demonstrating scalable asynchronous task processing using AWS SQS FIFO queues and PostgreSQL, with LocalStack for local development.
+A Spring Boot system demonstrating scalable asynchronous task processing using AWS SQS FIFO queues and PostgreSQL, structured as independently deployable microservices.
 
-## Modules
+## Services
 
-The system has two logical modules running in a single application:
+| Service | Responsibility |
+|---------|---------------|
+| **task-manager** | REST API for task submission and status retrieval; persists task state to PostgreSQL via Flyway-managed schema |
+| **task-worker** | SQS consumer; processes tasks (currency conversion, interest calculation) and publishes results back via a second queue |
+| **common** | Shared library — message DTOs and domain types consumed by both services |
 
-- **Task Manager** – REST API for task submission and status retrieval
-- **Task Converter** – Worker service that consumes tasks from SQS queues
-
-See [Architecture](architecture.md) for a detailed overview of how these modules interact.
+See [Architecture](architecture.md) for how the services interact.
 
 ## Tech Stack
 
@@ -18,14 +19,10 @@ See [Architecture](architecture.md) for a detailed overview of how these modules
 | Framework | Spring Boot 3.5.10 |
 | SQS integration | Spring Cloud AWS 3.1.1 |
 | Database | PostgreSQL 17 |
+| Schema migrations | Flyway |
 | ORM | Hibernate 6.6 |
 | Local AWS | LocalStack |
+| Container orchestration | Kubernetes (Helm + Kustomize) |
+| Autoscaling | KEDA (SQS queue-depth) + HPA (CPU) |
 | Infrastructure | Terraform |
 | Runtime | Java 21 |
-
-## Known Limitations
-
-- Both modules run in the same process — ideally they should be split for independent scaling
-- No retry mechanism: failed tasks are lost
-- Authorization/authentication should be handled at the platform level, not per-service
-- Terraform templates should include guard-rails (region constraints, DB version policies)

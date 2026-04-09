@@ -1,0 +1,23 @@
+# Dev overlay — renders both Helm charts with dev values.
+# Usage: kubectl apply -k k8s/overlays/dev --dry-run=client
+#
+# Kustomize's helmCharts feature renders the chart inline, then applies patches.
+# This is the pattern used by GitOps tools (ArgoCD, Flux) to manage Helm releases
+# declaratively without a separate Helm release CRD.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: async-dispatch-dev
+
+helmCharts:
+  - name: task-manager
+    releaseName: task-manager
+    repo: file://../../../helm/task-manager
+    version: "0.1.0"
+    valuesFile: ../../../helm/task-manager/values-dev.yaml
+
+  - name: task-worker
+    releaseName: task-worker
+    repo: file://../../../helm/task-worker
+    version: "0.1.0"
+    valuesFile: ../../../helm/task-worker/values-dev.yaml

@@ -1,0 +1,29 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 250m
+    memory: 512Mi
+
+hpa:
+  enabled: false
+
+pdb:
+  enabled: false
+
+aws:
+  region: us-east-1
+  endpointUrl: "http://localstack:4566"
+
+sqs:
+  tasksQueueUrl: "http://localstack:4566/000000000000/tasks.fifo"
+  taskResultsQueueUrl: "http://localstack:4566/000000000000/task-results.fifo"
+  tasksDlqQueueUrl: "http://localstack:4566/000000000000/tasks-dlq.fifo"
+  taskResultsDlqQueueUrl: "http://localstack:4566/000000000000/task-results-dlq.fifo"
+
+db:
+  url: "jdbc:postgresql://postgres:5432/async_dispatch"
+  username: "postgres"

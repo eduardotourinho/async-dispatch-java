@@ -1,29 +1,34 @@
 # Infrastructure
 
-Production infrastructure is managed with Terraform. The configuration lives in `infrastructure/terraform/`.
+Production infrastructure has two layers: **Terraform** provisions AWS resources (SQS, RDS), and **Helm + Kustomize** manages the Kubernetes workloads.
 
-## Prerequisites
+---
+
+## Terraform (AWS Resources)
+
+Configuration lives in `infrastructure/terraform/`.
+
+### Prerequisites
 
 - Terraform >= 1.0
 - AWS account with permissions to create SQS queues, RDS instances, and security groups
-- An existing VPC with at least two subnets in different availability zones (required for the RDS subnet group)
+- An existing VPC with at least two subnets in different availability zones
 
-## Resources Created
+### Resources Created
 
-### SQS Queues
+#### SQS Queues
 
 | Resource | Name | Notes |
 |----------|------|-------|
-| Main task queue | `{environment}-tasks.fifo` | FIFO, content-based deduplication, 4-day retention, 30s visibility timeout, long polling (10s), max 3 receive attempts before DLQ |
+| Main task queue | `{environment}-tasks.fifo` | FIFO, content-based deduplication, 4-day retention, 30s visibility timeout, long polling (10s), max 3 retries before DLQ |
 | Task results queue | `{environment}-task-results.fifo` | FIFO, content-based deduplication, 4-day retention |
 | Tasks DLQ | `{environment}-tasks-dlq.fifo` | FIFO, 14-day retention |
 | Task results DLQ | `{environment}-task-results-dlq.fifo` | FIFO, 14-day retention |
 
-### RDS PostgreSQL
+#### RDS PostgreSQL
 
 | Resource | Details |
 |----------|---------|
-| Instance ID | `{environment}-async-dispatch-db` |
 | Engine | PostgreSQL 17 |
 | Instance class | `db.t3.micro` (configurable) |
 | Storage | 20 GB gp3, autoscales to 100 GB |
@@ -31,56 +36,118 @@ Production infrastructure is managed with Terraform. The configuration lives in 
 | Backups | Automated, 7-day retention |
 | Monitoring | Performance Insights + CloudWatch logs |
 
-## Deploying
-
-### 1. Configure Variables
-
-Either export environment variables:
-
-```bash
-export TF_VAR_aws_region="us-east-1"
-export TF_VAR_aws_access_key="your-access-key"
-export TF_VAR_aws_secret_key="your-secret-key"
-export TF_VAR_aws_account_id="123456789012"
-export TF_VAR_environment="prod"
-export TF_VAR_vpc_id="vpc-xxxxxxxxxxxxxxxxx"
-export TF_VAR_db_subnet_ids='["subnet-xxxxxxxxxxxxxxxxx", "subnet-yyyyyyyyyyyyyyyyy"]'
-export TF_VAR_db_username="postgres"
-export TF_VAR_db_password="your-secure-password"
-```
-
-Or create a `terraform.tfvars` file (it is gitignored):
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your values
-```
-
-### 2. Apply
+### Deploying
 
 ```bash
 cd infrastructure/terraform
+
+# Copy and fill in the variables file
+cp terraform.tfvars.example terraform.tfvars
+
 terraform init
 terraform plan
 terraform apply
 ```
 
-### 3. Destroy
-
-```bash
-terraform destroy
-```
-
-## Outputs
-
-After `terraform apply` completes, the following values are available via `terraform output`:
+### Outputs
 
 | Output | Description |
 |--------|-------------|
-| `rds_endpoint` | RDS endpoint in `host:port` format |
-| `rds_address` | RDS hostname only |
-| `rds_port` | RDS port (5432) |
-| `rds_database_name` | Database name |
-| `rds_instance_id` | RDS instance identifier |
+| `rds_endpoint` | RDS endpoint (`host:port`) — use as `DB_URL` |
+| `tasks_queue_url` | URL of the tasks FIFO queue |
+| `task_results_queue_url` | URL of the task-results FIFO queue |
 
-Use `rds_endpoint` and the queue URLs to populate `application.properties` for production. See [Configuration](configuration.md#production-overrides) for details.
+---
+
+## Kubernetes (Helm + Kustomize)
+
+### Helm Charts
+
+Each service has its own Helm chart:
+
+| Chart | Path | Key templates |
+|-------|------|--------------|
+| task-manager | `helm/task-manager/` | Deployment, Service, ConfigMap, ServiceAccount (IRSA), HPA, PodDisruptionBudget |
+| task-worker | `helm/task-worker/` | Deployment, ConfigMap, ServiceAccount (IRSA), KEDA ScaledObject, PodDisruptionBudget |
+
+Environment-specific values files:
+
+```
+helm/task-manager/
+├── values.yaml          # defaults
+├── values-dev.yaml      # local/dev overrides
+└── values-prod.yaml     # production overrides
+
+helm/task-worker/
+├── values.yaml
+├── values-dev.yaml
+└── values-prod.yaml
+```
+
+Render a chart to inspect the output before applying:
+
+```bash
+helm template task-manager helm/task-manager -f helm/task-manager/values-prod.yaml
+helm template task-worker  helm/task-worker  -f helm/task-worker/values-prod.yaml
+```
+
+Lint:
+
+```bash
+helm lint helm/task-manager
+helm lint helm/task-worker
+```
+
+### Kustomize Overlays
+
+Overlays at `k8s/overlays/{dev,prod}` use Kustomize's `helmCharts` generator to render the Helm charts and apply environment-specific patches:
+
+```bash
+# Preview rendered manifests
+kubectl apply -k k8s/overlays/dev  --dry-run=client
+kubectl apply -k k8s/overlays/prod --dry-run=client
+
+# Apply
+kubectl apply -k k8s/overlays/prod
+```
+
+### KEDA (task-worker autoscaling)
+
+task-worker scales based on SQS queue depth, not CPU. The KEDA `ScaledObject` in `helm/task-worker/templates/keda-scaledobject.yaml` polls `tasks.fifo` every 15 seconds and adds one pod replica per `targetQueueLength` messages queued.
+
+| Parameter | Dev | Prod |
+|-----------|-----|------|
+| `minReplicas` | 1 | 2 |
+| `maxReplicas` | 10 | 50 |
+| `targetQueueLength` | 5 | 5 |
+
+KEDA must be installed in the cluster before deploying task-worker:
+
+```bash
+helm repo add kedacore https://kedacore.github.io/charts
+helm install keda kedacore/keda --namespace keda --create-namespace
+```
+
+### IRSA (IAM Roles for Service Accounts)
+
+Neither service uses hardcoded AWS credentials in production. Each `ServiceAccount` is annotated with an IAM role ARN:
+
+```yaml
+annotations:
+  eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/task-manager-irsa-role
+```
+
+The required IAM permissions per service:
+
+| Service | Permissions |
+|---------|-------------|
+| task-manager | `sqs:SendMessage`, `sqs:ReceiveMessage`, `sqs:DeleteMessage`, `sqs:GetQueueAttributes` |
+| task-worker | `sqs:ReceiveMessage`, `sqs:DeleteMessage`, `sqs:SendMessage`, `sqs:GetQueueAttributes` |
+
+Set the role ARN in the production values file:
+
+```yaml
+# helm/task-manager/values-prod.yaml
+serviceAccount:
+  irsaRoleArn: "arn:aws:iam::123456789012:role/task-manager-irsa-role"
+```

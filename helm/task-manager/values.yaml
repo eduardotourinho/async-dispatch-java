@@ -1,0 +1,68 @@
+replicaCount: 2
+
+image:
+  repository: task-manager
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+serviceAccount:
+  create: true
+  # Annotate the ServiceAccount with the IAM role that grants SQS + RDS access.
+  # In production this replaces hardcoded AWS credentials (IRSA pattern on EKS).
+  irsaRoleArn: ""
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  enabled: true
+  # At least 1 pod must remain available during voluntary disruptions (node drains,
+  # rolling updates). Prevents full outage during cluster maintenance.
+  minAvailable: 1
+
+aws:
+  region: us-east-1
+  # Set to LocalStack URL for local development; leave empty for production.
+  endpointUrl: ""
+
+sqs:
+  tasksQueueUrl: ""
+  taskResultsQueueUrl: ""
+  tasksDlqQueueUrl: ""
+  taskResultsDlqQueueUrl: ""
+
+db:
+  url: ""
+  username: ""
+  # db.password should be injected via a Kubernetes Secret, not stored here.
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health/liveness
+    port: 8080
+  initialDelaySeconds: 45
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health/readiness
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  failureThreshold: 3

@@ -12,11 +12,10 @@ on:
     branches:
       - main
       - master
-      - "feature/**"
 
 jobs:
   build-and-test:
-    name: Build & Test
+    name: Build & Test (all modules)
     runs-on: ubuntu-latest
 
     services:
@@ -52,25 +51,22 @@ jobs:
           --health-retries 10
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/async_dispatch
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-
-      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
-      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
-      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
-      SPRING_CLOUD_AWS_ENDPOINT: http://localhost:4566
-      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localhost:4566
-      SPRING_CLOUD_AWS_SQS_TASKS_QUEUE_URL: http://localhost:4566/000000000000/tasks.fifo
-      SPRING_CLOUD_AWS_SQS_TASK_RESULTS_QUEUE_URL: http://localhost:4566/000000000000/task-results.fifo
-      SPRING_CLOUD_AWS_SQS_TASKS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/tasks-dlq.fifo
-      SPRING_CLOUD_AWS_SQS_TASK_RESULTS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/task-results-dlq.fifo
-
+      # task-manager uses env-var driven config
+      DB_URL: jdbc:postgresql://localhost:5432/async_dispatch
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      SQS_TASKS_QUEUE_URL: http://localhost:4566/000000000000/tasks.fifo
+      SQS_TASK_RESULTS_QUEUE_URL: http://localhost:4566/000000000000/task-results.fifo
+      SQS_TASKS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/tasks-dlq.fifo
+      SQS_TASK_RESULTS_DLQ_QUEUE_URL: http://localhost:4566/000000000000/task-results-dlq.fifo
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
@@ -91,13 +87,20 @@ jobs:
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x ./gradlew
 
-      - name: Build and run tests
+      - name: Build and test all modules
         run: ./gradlew build --no-daemon
+
+      - name: Helm lint — task-manager
+        uses: azure/setup-helm@v4
+
+      - run: helm lint helm/task-manager && helm lint helm/task-worker
 
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports
-          path: build/reports/tests/
+          path: |
+            task-manager/build/reports/tests/
+            task-worker/build/reports/tests/
           retention-days: 7

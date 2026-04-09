@@ -8,9 +8,41 @@
 | Docker & Docker Compose | Latest stable |
 | Gradle | 8.x (or use the included `./gradlew` wrapper) |
 
-## Starting the Infrastructure
+## Project Structure
 
-The `docker-compose.yml` at the project root starts both PostgreSQL and LocalStack:
+This is a multi-module Gradle monorepo. Each service is an independent subproject:
+
+```
+async-dispatch/
+├── common/          # Shared library (message DTOs, TaskType)
+├── task-manager/    # REST API service
+└── task-worker/     # SQS worker service
+```
+
+## Building
+
+Build all modules:
+
+```bash
+./gradlew build
+```
+
+Build a specific module:
+
+```bash
+./gradlew :task-manager:build
+./gradlew :task-worker:build
+```
+
+Run tests:
+
+```bash
+./gradlew :task-manager:test :task-worker:test
+```
+
+## Running with Docker Compose
+
+The `docker-compose.yml` at the project root starts the full stack — both services, PostgreSQL, and LocalStack:
 
 ```bash
 docker-compose up -d
@@ -18,38 +50,61 @@ docker-compose up -d
 
 This brings up:
 
-- **PostgreSQL 17** on port `5432` — database used by the application
-- **LocalStack** on port `4566` — local emulation of AWS SQS
+| Container | Port | Purpose |
+|-----------|------|---------|
+| `async-dispatch-postgres` | `5432` | PostgreSQL database |
+| `localstack-sqs` | `4566` | LocalStack (SQS emulation) |
+| `async-dispatch-task-manager` | `8080` | task-manager REST API |
+| `async-dispatch-task-worker` | `8081` | task-worker (SQS consumer) |
 
-On startup, the LocalStack init script (`infrastructure/localstack/init-sqs.sh`) automatically creates all four required SQS FIFO queues. No manual queue creation is needed.
+On startup, the LocalStack init script (`infrastructure/localstack/init-sqs.sh`) automatically creates all four required SQS FIFO queues.
 
-## Running the Application
+## Running Services Locally (without Docker)
+
+Start the infrastructure first:
 
 ```bash
-./gradlew bootRun
+docker-compose up -d postgres localstack
 ```
 
-The application starts on port `8080` and initialises both the Task Manager and Task Converter modules.
+Then run each service with the appropriate environment variables:
+
+**task-manager:**
+```bash
+AWS_ENDPOINT_URL=http://localhost:4566 \
+AWS_ACCESS_KEY_ID=test \
+AWS_SECRET_ACCESS_KEY=test \
+DB_URL=jdbc:postgresql://localhost:5432/async_dispatch \
+DB_USERNAME=postgres \
+DB_PASSWORD=postgres \
+./gradlew :task-manager:bootRun
+```
+
+**task-worker** (separate terminal):
+```bash
+AWS_ENDPOINT_URL=http://localhost:4566 \
+AWS_ACCESS_KEY_ID=test \
+AWS_SECRET_ACCESS_KEY=test \
+./gradlew :task-worker:bootRun
+```
 
 ## Verifying the Setup
 
-Check that the application is healthy:
+Check that task-manager is healthy:
 
 ```bash
 curl http://localhost:8080/actuator/health
 ```
 
-A successful response looks like:
-
-```json
-{ "status": "UP" }
-```
-
-You can also view build and app info at:
+Check that task-worker is healthy:
 
 ```bash
-curl http://localhost:8080/actuator/info
+curl http://localhost:8081/actuator/health
 ```
+
+Both should return `{ "status": "UP" }`.
+
+Browse the API at [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html).
 
 ## LocalStack SQS Details
 
@@ -57,8 +112,8 @@ curl http://localhost:8080/actuator/info
 
 | Queue | Purpose | DLQ |
 |-------|---------|-----|
-| `tasks.fifo` | Incoming tasks from Task Manager | `tasks-dlq.fifo` |
-| `task-results.fifo` | Processed results from Task Converter | `task-results-dlq.fifo` |
+| `tasks.fifo` | Incoming tasks from task-manager | `tasks-dlq.fifo` |
+| `task-results.fifo` | Processed results from task-worker | `task-results-dlq.fifo` |
 | `tasks-dlq.fifo` | Failed task messages (max 3 receive attempts) | — |
 | `task-results-dlq.fifo` | Failed result messages (max 3 receive attempts) | — |
 
@@ -70,29 +125,18 @@ All queues use content-based deduplication.
 aws --endpoint-url=http://localhost:4566 sqs list-queues
 ```
 
-You should see all four queue URLs in the response.
-
 ### Sending a Test Message Manually
 
 ```bash
 aws --endpoint-url=http://localhost:4566 sqs send-message \
   --queue-url http://localhost:4566/000000000000/tasks.fifo \
-  --message-body '{"type":"CONVERT_CURRENCY","payload":{"amount":100,"fromCurrency":"EUR","toCurrency":"USD"}}' \
+  --message-body '{"type":"CONVERT_CURRENCY","taskId":"00000000-0000-0000-0000-000000000001","payload":{"amount":100,"fromCurrency":"EUR","toCurrency":"USD"}}' \
   --message-group-id test
 ```
 
 ### Reinitialising Queues
 
-If queues are missing or corrupted, recreate them by restarting LocalStack cleanly:
-
 ```bash
 docker-compose down
-rm -rf .localstack
-docker-compose up -d
-```
-
-You can also check LocalStack logs to diagnose initialisation problems:
-
-```bash
-docker logs localstack-sqs
+docker-compose up -d postgres localstack
 ```
